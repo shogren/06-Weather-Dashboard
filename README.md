@@ -4,7 +4,7 @@
 
 This is the module 06 "Weather Dashboard" by Jonathan Shogren. The challange was to make an weather dashboard that can take in a searched city, return the current weather and the 5 day forcast, and save previous searched cities.
 
-Here is a link to the live finished page:
+Here is a link to the live finished page: https://shogren.github.io/06-Weather-Dashboard/
 
 ## User Story
 
