@@ -13,6 +13,7 @@ ul {
 
 .jumbotron {
     background-color: #D8DEE9;
+    text-align: center;
 }
 
 #current-weather {
@@ -29,6 +30,24 @@ ul {
     background-color: #81A1C1;
 }
 
-.list-group-item:after {
+.list-group-item:focus {
     background-color: #81A1C1;
+}
+
+.uv-favorable{
+    background-color: green;
+    border-radius: 5px;
+    color: white;
+}
+
+.uv-moderate{
+    background-color: orange;
+    border-radius: 5px;
+    color: white;
+}
+
+.uv-severe{
+    background-color: red;
+    border-radius: 5px;
+    color: white;
 }

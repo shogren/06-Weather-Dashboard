@@ -1,6 +1,9 @@
-// api key
+// api key and some variables
 const key = "eb3cb13f1dbdafda62142b6699ac4aa6";
 var city = '';
+var lat = 0;
+var lon = 0;
+var uvi = 0;
 
 // given a city name, save the city and post the current weather to the page
 function getWeather(event) {
@@ -9,6 +12,8 @@ function getWeather(event) {
         alert("Search field cannot be left blank");
         return;
     }
+    // saves the city to local storage in lowercase to avoid duplicates based on case mismatch
+    //TODO: if its a 200, save
     save(city.toLowerCase());
 
     // build the query URL
@@ -20,7 +25,6 @@ function getWeather(event) {
          return response.json();
     })
     .then((data) => {
-        console.log("Current temp: " + data.main.temp);
         let weatherHTML = `
             <h2>${data.name}</h2>
             <h3>${moment().format("dddd, MMMM Do YYYY")}</h3>
@@ -28,12 +32,16 @@ function getWeather(event) {
                 <li>Temperature: ${data.main.temp}&#8457;</li>
                 <li>Humidity: ${data.main.humidity}%</li>
                 <li>Wind Speed: ${data.wind.speed} mph</li>
+                <li id="uvindex">UV Index: ${uvi}</li>
             </ul>`;
         // print the results to the html
         $('#current-weather').html(weatherHTML);
-
+        // run the 5 day forcast function
         fiveDayForcast(event);
     })
+    // run geolocate and uvindex to get the lat/lon which pulls the UV Index number
+    gelocate();
+    uvIndex();
 } 
 
 // save searched cities, unless the city already exists 
@@ -52,7 +60,52 @@ function save(city) {
     }
 }
 
+// title case the city name to display
+function titleCase(str) {
+    return str.toLowerCase().split(' ').map(function(word) {
+      return word.replace(word[0], word[0].toUpperCase());
+    }).join(' ');
+  }
 
+// we need latitude and longitude to get the UV index
+function gelocate() {
+    city = city.replace(/\s/g, '');
+    var geoUrl = "https://api.openweathermap.org/geo/1.0/direct?q=" + city + "&units=imperial&limit=1" + "&appid=" + key;
+    fetch(geoUrl)
+    .then((response) => {
+        return response.json();
+     })
+    .then((data) => {
+        if (data.length !== 0) {
+            lat = data[0].lat;
+            lon = data[0].lon;
+        }
+    })
+}
+
+// once we have the geolocate function ran, we can get the UV Index
+function uvIndex() {
+    var uvUrl = "https://api.openweathermap.org/data/2.5/onecall?lat=" + lat + "&lon=" + lon + "&units=imperial&exclude=hourly,daily" + "&appid=" + key;
+    
+    fetch(uvUrl)
+    .then((uviResponse) => {
+        return uviResponse.json();
+    })
+    .then((uvData) => {
+        uvi = uvData.current.uvi;
+
+        if (uvi>=0 && uvi<3){
+            $('#uvindex').attr("class", "uv-favorable");
+        } else if (uvi>=3 && uvi<8){
+            $('#uvindex').attr("class", "uv-moderate");
+        } else if (uvi>=8){
+            $('#uvindex').attr("class", "uv-severe");
+        }
+    })
+                
+}
+
+// pull the data for the 5 day forcast
 function fiveDayForcast(event) {
     let city = $('#search-city').val();
     let url = "https://api.openweathermap.org/data/2.5/forecast?q=" + city + "&units=imperial" + "&appid=" + key;
@@ -73,6 +126,7 @@ function fiveDayForcast(event) {
             let time = day.dt;
             let timeZone = response.city.timezone;
             let timeZoneOffset = timeZone / 60 / 60;
+            // what a mess lol, I hope there is a better way to do this
             let currentTime = moment.unix(time).utc().utcOffset(timeZoneOffset);
 
             // the API returns the 5-Day forcast in 3 hour intervals, this should make sure that at least one is grabbed for the day
@@ -101,13 +155,11 @@ function fiveDayForcast(event) {
     })
 }
 
-
-
+// builds the previously searched buttons
 function showSearches() {
     for (let i = 0; i < localStorage.length; i++) {
         let searchedCity = localStorage.getItem("cities" + i);
         let cityEl = `<li><button type="button" class="list-group-item list-group-item-action">${searchedCity}</button></li>`;
-        // Append city to page
         $('#previous-searches').prepend(cityEl);
     }
 }
@@ -119,6 +171,7 @@ $('#search-button').on("click", (event) => {
     getWeather(event);
     });
 
+// each previously searched city button should function as a button!
 $('#previous-searches').on("click", (event) => {
     event.preventDefault();
     $('#search-city').val(event.target.textContent);
